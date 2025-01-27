@@ -171,7 +171,7 @@ fn get_building_types(
         .inner_join(map_layout::table)
         .inner_join(block_type::table.on(map_spaces::block_type_id.eq(block_type::id)))
         .filter(block_type::category.eq(BlockCategory::Building))
-        .inner_join(building_type::table.on(block_type::category_id.eq(building_type::id)))
+        .inner_join(building_type::table.on(block_type::building_type.assume_not_null().eq(building_type::id)))
         .filter(map_layout::player.eq(player_id))
         .filter(block_type::category.eq(BlockCategory::Building))
         .select((building_type::all_columns, block_type::id, map_spaces::id));
@@ -369,7 +369,7 @@ fn get_defender_types(
         .inner_join(
             block_type::table
                 .inner_join(
-                    defender_type::table.on(block_type::category_id
+                    defender_type::table.on(block_type::defender_type.assume_not_null()
                         .eq(defender_type::id)
                         .and(block_type::category.eq(BlockCategory::Defender))),
                 )
@@ -492,7 +492,7 @@ fn get_mine_types(player_id: i32, conn: &mut PgConnection) -> Result<Vec<MineTyp
         .inner_join(map_layout::table)
         .inner_join(block_type::table.on(map_spaces::block_type_id.eq(block_type::id)))
         .filter(block_type::category.eq(BlockCategory::Mine))
-        .inner_join(mine_type::table.on(block_type::category_id.eq(mine_type::id)))
+        .inner_join(mine_type::table.on(block_type::mine_type.assume_not_null().eq(mine_type::id)))
         .inner_join(prop::table.on(mine_type::prop_id.eq(prop::id)))
         .filter(map_layout::player.eq(player_id))
         .select((mine_type::all_columns, block_type::id, prop::all_columns, map_spaces::id));
@@ -704,7 +704,7 @@ pub(crate) fn upgrade_building(
     let joined_table = map_spaces::table
         .inner_join(map_layout::table)
         .inner_join(block_type::table.on(map_spaces::block_type_id.eq(block_type::id)))
-        .inner_join(building_type::table.on(block_type::category_id.eq(building_type::id)))
+        .inner_join(building_type::table.on(block_type::building_type.assume_not_null().eq(building_type::id)))
         .filter(block_type::category.eq(BlockCategory::Building))
         .filter(map_layout::player.eq(player_id))
         .filter(block_type::id.eq(block_id));
@@ -808,7 +808,7 @@ pub(crate) fn upgrade_defender(
         .inner_join(map_layout::table)
         .inner_join(block_type::table)
         .filter(block_type::category.eq(BlockCategory::Defender))
-        .inner_join(defender_type::table.on(block_type::category_id.eq(defender_type::id)))
+        .inner_join(defender_type::table.on(block_type::defender_type.assume_not_null().eq(defender_type::id)))
         .filter(map_layout::player.eq(player_id))
         .filter(map_spaces::block_type_id.eq(block_id));
 
@@ -903,7 +903,7 @@ pub(crate) fn upgrade_mine(player_id: i32, conn: &mut PgConnection, block_id: i3
         .inner_join(map_layout::table)
         .inner_join(block_type::table.on(map_spaces::block_type_id.eq(block_type::id)))
         .filter(block_type::category.eq(BlockCategory::Mine))
-        .inner_join(mine_type::table.on(block_type::category_id.eq(mine_type::id)))
+        .inner_join(mine_type::table.on(block_type::mine_type.assume_not_null().eq(mine_type::id)))
         .filter(map_layout::player.eq(player_id))
         .filter(map_spaces::block_type_id.eq(block_id));
 
