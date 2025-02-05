@@ -101,26 +101,6 @@ pub struct NewArtifact {
     pub count: i32,
 }
 
-// #[derive(Queryable, Debug, Serialize, Deserialize)]
-// pub struct AvailableBlocks {
-//     pub block_type_id: Option<i32>,
-//     pub user_id: i32,
-//     pub attacker_type_id: Option<i32>,
-//     pub emp_type_id: Option<i32>,
-//     pub category: ItemCategory,
-//     pub id: i32,
-// }
-
-// #[derive(Deserialize, Insertable)]
-// #[diesel(table_name = available_blocks)]
-// pub struct NewAvailableBlocks {
-//     pub block_type_id: Option<i32>,
-//     pub user_id: i32,
-//     pub attacker_type_id: Option<i32>,
-//     pub emp_type_id: Option<i32>,
-//     pub category: ItemCategory,
-// }
-
 #[derive(Queryable, Debug, Serialize, Deserialize)]
 pub struct AvailableAttackers {
     pub id: i32,

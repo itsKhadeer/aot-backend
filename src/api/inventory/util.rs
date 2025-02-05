@@ -171,7 +171,11 @@ fn get_building_types(
         .inner_join(map_layout::table)
         .inner_join(block_type::table.on(map_spaces::block_type_id.eq(block_type::id)))
         .filter(block_type::category.eq(BlockCategory::Building))
-        .inner_join(building_type::table.on(block_type::building_type.assume_not_null().eq(building_type::id)))
+        .inner_join(
+            building_type::table.on(block_type::building_type
+                .assume_not_null()
+                .eq(building_type::id)),
+        )
         .filter(map_layout::player.eq(player_id))
         .filter(block_type::category.eq(BlockCategory::Building))
         .select((building_type::all_columns, block_type::id, map_spaces::id));
@@ -369,7 +373,8 @@ fn get_defender_types(
         .inner_join(
             block_type::table
                 .inner_join(
-                    defender_type::table.on(block_type::defender_type.assume_not_null()
+                    defender_type::table.on(block_type::defender_type
+                        .assume_not_null()
                         .eq(defender_type::id)
                         .and(block_type::category.eq(BlockCategory::Defender))),
                 )
@@ -382,7 +387,7 @@ fn get_defender_types(
             defender_type::all_columns,
             block_type::id,
             prop::all_columns,
-            map_spaces::id
+            map_spaces::id,
         ));
 
     let defenders = joined_table
@@ -495,7 +500,12 @@ fn get_mine_types(player_id: i32, conn: &mut PgConnection) -> Result<Vec<MineTyp
         .inner_join(mine_type::table.on(block_type::mine_type.assume_not_null().eq(mine_type::id)))
         .inner_join(prop::table.on(mine_type::prop_id.eq(prop::id)))
         .filter(map_layout::player.eq(player_id))
-        .select((mine_type::all_columns, block_type::id, prop::all_columns, map_spaces::id));
+        .select((
+            mine_type::all_columns,
+            block_type::id,
+            prop::all_columns,
+            map_spaces::id,
+        ));
 
     let mines = joined_table
         .load::<(MineType, i32, Prop, i32)>(conn)
@@ -704,7 +714,11 @@ pub(crate) fn upgrade_building(
     let joined_table = map_spaces::table
         .inner_join(map_layout::table)
         .inner_join(block_type::table.on(map_spaces::block_type_id.eq(block_type::id)))
-        .inner_join(building_type::table.on(block_type::building_type.assume_not_null().eq(building_type::id)))
+        .inner_join(
+            building_type::table.on(block_type::building_type
+                .assume_not_null()
+                .eq(building_type::id)),
+        )
         .filter(block_type::category.eq(BlockCategory::Building))
         .filter(map_layout::player.eq(player_id))
         .filter(block_type::id.eq(block_id));
@@ -714,7 +728,7 @@ pub(crate) fn upgrade_building(
             building_type::cost,
             building_type::level,
             building_type::name,
-            map_spaces::id
+            map_spaces::id,
         ))
         .first::<(i32, i32, String, i32)>(conn)
         .map_err(|err| DieselError {
@@ -750,7 +764,7 @@ pub(crate) fn upgrade_building(
         .select((block_type::id, building_type::name))
         .first::<(i32, String)>(conn)
         .map_err(|err| DieselError {
-            table: "available_blocks",
+            table: "building_type",
             function: function!(),
             error: err,
         })?;
@@ -782,7 +796,6 @@ pub(crate) fn upgrade_defender(
     player_id: i32,
     conn: &mut PgConnection,
     block_id: i32,
-    update_map_spaces: bool,
 ) -> Result<()> {
     let user_artifacts = get_user_artifacts(player_id, conn)?;
 
@@ -808,16 +821,20 @@ pub(crate) fn upgrade_defender(
         .inner_join(map_layout::table)
         .inner_join(block_type::table)
         .filter(block_type::category.eq(BlockCategory::Defender))
-        .inner_join(defender_type::table.on(block_type::defender_type.assume_not_null().eq(defender_type::id)))
+        .inner_join(
+            defender_type::table.on(block_type::defender_type
+                .assume_not_null()
+                .eq(defender_type::id)),
+        )
         .filter(map_layout::player.eq(player_id))
         .filter(map_spaces::block_type_id.eq(block_id));
 
-    let (cost, level, name, map_space_id): (i32, i32, String, i32) = joined_table
+    let (cost, level, name, _): (i32, i32, String, i32) = joined_table
         .select((
             defender_type::cost,
             defender_type::level,
             defender_type::name,
-            map_spaces::id
+            map_spaces::id,
         ))
         .first::<(i32, i32, String, i32)>(conn)
         .map_err(|err| DieselError {
@@ -853,7 +870,7 @@ pub(crate) fn upgrade_defender(
         .select(block_type::id)
         .first::<i32>(conn)
         .map_err(|err| DieselError {
-            table: "available_blocks",
+            table: "defender_type",
             function: function!(),
             error: err,
         })?;
@@ -865,17 +882,36 @@ pub(crate) fn upgrade_defender(
     if artifacts_in_bank < cost {
         return Err(anyhow::anyhow!("Not enough artifacts in bank"));
     }
-    run_transaction(
-        conn,
-        block_id,
-        next_level_block_id,
-        player_id,
-        cost,
-        user_artifacts,
-        bank_map_space_id,
-        update_map_spaces,
-        map_space_id,
-    )
+
+    conn.transaction(|conn| {
+        let id_of_map = get_user_map_id(player_id, conn)?;
+
+        diesel::update(user::table.filter(user::id.eq(player_id)))
+            .set(user::artifacts.eq(user_artifacts - cost))
+            .execute(conn)?;
+
+        //update artifacts in bank
+        diesel::update(artifact::table.filter(artifact::map_space_id.eq(bank_map_space_id)))
+            .set(artifact::count.eq(artifact::count - cost))
+            .execute(conn)
+            .map_err(|err| DieselError {
+                table: "artifact",
+                function: function!(),
+                error: err,
+            })?;
+
+        //update map spaces
+        diesel::update(
+            map_spaces::table
+                .filter(map_spaces::block_type_id.eq(block_id))
+                // .filter(map_spaces::id.eq(map_space_id))
+                .filter(map_spaces::map_id.eq(id_of_map)),
+        )
+        .set(map_spaces::block_type_id.eq(next_level_block_id))
+        .execute(conn)?;
+
+        Ok(())
+    })
 }
 
 pub(crate) fn upgrade_mine(player_id: i32, conn: &mut PgConnection, block_id: i32) -> Result<()> {
@@ -907,8 +943,13 @@ pub(crate) fn upgrade_mine(player_id: i32, conn: &mut PgConnection, block_id: i3
         .filter(map_layout::player.eq(player_id))
         .filter(map_spaces::block_type_id.eq(block_id));
 
-    let (cost, level, name, map_space_id): (i32, i32, String, i32) = joined_table
-        .select((mine_type::cost, mine_type::level, mine_type::name, map_spaces::id))
+    let (cost, level, name, _): (i32, i32, String, i32) = joined_table
+        .select((
+            mine_type::cost,
+            mine_type::level,
+            mine_type::name,
+            map_spaces::id,
+        ))
         .first::<(i32, i32, String, i32)>(conn)
         .map_err(|err| DieselError {
             table: "mine_type",
@@ -943,7 +984,7 @@ pub(crate) fn upgrade_mine(player_id: i32, conn: &mut PgConnection, block_id: i3
         .select(block_type::id)
         .first::<i32>(conn)
         .map_err(|err| DieselError {
-            table: "available_blocks",
+            table: "mine_type",
             function: function!(),
             error: err,
         })?;
@@ -955,17 +996,36 @@ pub(crate) fn upgrade_mine(player_id: i32, conn: &mut PgConnection, block_id: i3
     if artifacts_in_bank < cost {
         return Err(anyhow::anyhow!("Not enough artifacts in bank"));
     }
-    run_transaction(
-        conn,
-        block_id,
-        next_level_block_id,
-        player_id,
-        cost,
-        user_artifacts,
-        bank_map_space_id,
-        true,
-        map_space_id
-    )
+    conn.transaction(|conn| {
+        let id_of_map = get_user_map_id(player_id, conn)?;
+
+        diesel::update(user::table.filter(user::id.eq(player_id)))
+            .set(user::artifacts.eq(user_artifacts - cost))
+            .execute(conn)?;
+
+        //update artifacts in bank
+        diesel::update(artifact::table.filter(artifact::map_space_id.eq(bank_map_space_id)))
+            .set(artifact::count.eq(artifact::count - cost))
+            .execute(conn)
+            .map_err(|err| DieselError {
+                table: "artifact",
+                function: function!(),
+                error: err,
+            })?;
+
+        //update map spaces
+
+        diesel::update(
+            map_spaces::table
+                .filter(map_spaces::block_type_id.eq(block_id))
+                // .filter(map_spaces::id.eq(map_space_id))
+                .filter(map_spaces::map_id.eq(id_of_map)),
+        )
+        .set(map_spaces::block_type_id.eq(next_level_block_id))
+        .execute(conn)?;
+
+        Ok(())
+    })
 }
 
 pub(crate) fn upgrade_attacker(
@@ -1145,7 +1205,6 @@ pub(crate) fn upgrade_emp(player_id: i32, conn: &mut PgConnection, emp_id: i32) 
     })
 }
 
-#[warn(clippy::too_many_arguments)]
 fn run_transaction(
     conn: &mut PgConnection,
     block_id: i32,
@@ -1159,14 +1218,6 @@ fn run_transaction(
 ) -> Result<(), anyhow::Error> {
     conn.transaction(|conn| {
         let id_of_map = get_user_map_id(player_id, conn)?;
-
-        // diesel::update(
-        //     available_blocks::table
-        //         .filter(available_blocks::block_type_id.eq(block_id))
-        //         .filter(available_blocks::user_id.eq(player_id)),
-        // )
-        // .set(available_blocks::block_type_id.eq(next_level_block_id))
-        // .execute(conn)?;
 
         diesel::update(user::table.filter(user::id.eq(player_id)))
             .set(user::artifacts.eq(user_artifacts - cost))
