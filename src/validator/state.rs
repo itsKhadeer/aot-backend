@@ -12,14 +12,11 @@ use crate::{
         MineDetails, SourceDestXY,
     },
 };
-use crate::{
-    constants::{
+use crate::constants::{
         BOMB_DAMAGE_MULTIPLIER, BULLET_COLLISION_TIME, DAMAGE_PER_BULLET_LEVEL_1,
         DAMAGE_PER_BULLET_LEVEL_2, DAMAGE_PER_BULLET_LEVEL_3, LEVEL, LIVES,
         PERCENTANGE_ARTIFACTS_OBTAINABLE,
-    },
-    schema::defender_type::damage,
-};
+    };
 use serde::{Deserialize, Serialize};
 
 use super::util::{select_side_hut_defender, BombType, HutDefenderDetails};
@@ -827,11 +824,11 @@ impl State {
                     "Defender pos {} {} and id {}",
                     defender.defender_pos.x,
                     defender.defender_pos.y,
-                    defender.mapSpaceId
+                    defender.map_space_id
                 );
 
                 defenders_damaged.push(DefenderResponse {
-                    mapSpaceId: defender.mapSpaceId,
+                    map_space_id: defender.map_space_id,
                     position: defender.defender_pos,
                     damage: defender.damage,
                 });

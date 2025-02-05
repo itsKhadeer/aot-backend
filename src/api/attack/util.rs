@@ -424,7 +424,7 @@ pub fn add_game_id_to_redis(
     mut redis_conn: RedisConn,
 ) -> Result<()> {
     redis_conn
-        .set_ex(
+        .set_ex::<_, _, ()>(
             format!("Attacker:{}", attacker_id),
             game_id,
             GAME_AGE_IN_MINUTES * 60,
@@ -432,7 +432,7 @@ pub fn add_game_id_to_redis(
         .map_err(|err| anyhow::anyhow!("Failed to set attacker key: {}", err))?;
 
     redis_conn
-        .set_ex(
+        .set_ex::<_, _, ()>(
             format!("Defender:{}", defender_id),
             game_id,
             GAME_AGE_IN_MINUTES * 60,
@@ -466,10 +466,10 @@ pub fn delete_game_id_from_redis(
     redis_conn: &mut RedisConn,
 ) -> Result<()> {
     redis_conn
-        .del(format!("Attacker:{}", attacker_id))
+        .del::<_, ()>(format!("Attacker:{}", attacker_id))
         .map_err(|err| anyhow::anyhow!("Failed to delete attacker key: {}", err))?;
     redis_conn
-        .del(format!("Defender:{}", defender_id))
+        .del::<_, ()>(format!("Defender:{}", defender_id))
         .map_err(|err| anyhow::anyhow!("Failed to delete defender key: {}", err))?;
 
     Ok(())
@@ -633,7 +633,7 @@ pub fn get_defenders(
         let (hut_x, hut_y) = (map_space.x_coordinate, map_space.y_coordinate);
         // let path: Vec<(i32, i32)> = vec![(hut_x, hut_y)];
         defenders.push(DefenderDetails {
-            mapSpaceId: map_space.id,
+            map_space_id: map_space.id,
             name: defender.name.clone(),
             radius: prop.range,
             speed: defender.speed,
@@ -714,7 +714,7 @@ pub fn get_hut_defender(
     let mut hut_defender_array: Vec<DefenderDetails> = Vec::new();
     for (i, (block_type, defender_type, prop)) in hut_defenders.enumerate() {
         hut_defender_array.push(DefenderDetails {
-            mapSpaceId: (i + 1) as i32,
+            map_space_id: (i + 1) as i32,
             name: defender_type.name.clone(),
             radius: prop.range,
             speed: defender_type.speed,

@@ -1,13 +1,10 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::{
-    api::{
-        attack::{
+    api::attack::{
             socket::{ActionType, BuildingResponse, ResultType, SocketRequest, SocketResponse},
             util::{EventResponse, GameLog},
         },
-        game,
-    },
     models::AttackerType,
     validator::util::{Coords, SourceDestXY},
 };

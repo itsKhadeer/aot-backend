@@ -43,7 +43,7 @@ pub struct IsTriggered {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct DefenderDetails {
-    pub mapSpaceId: i32,
+    pub map_space_id: i32,
     pub name: String,
     pub radius: i32,
     pub speed: i32,
