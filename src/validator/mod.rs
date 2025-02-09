@@ -14,7 +14,7 @@ use util::{Companion, CompanionResult, MineResponse, Path};
 
 use self::{
     state::State,
-    util::{send_terminate_game_message, Attacker, BombType, DefenderReturnType, MineDetails},
+    util::{send_terminate_game_message, Attacker, BombType, DefenderReturnType},
 };
 
 pub mod error;
@@ -253,7 +253,7 @@ pub fn game_handler(
 
                 let result_type = if hut_triggered {
                     ResultType::SpawnHutDefender
-                } else if defender_damaged_result.clone().defender_response.len() > 0 {
+                } else if !defender_damaged_result.clone().defender_response.is_empty() {
                     ResultType::DefendersDamaged
                 } else {
                     ResultType::BuildingsDamaged

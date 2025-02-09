@@ -13,12 +13,11 @@ use crate::schema::{available_emps, map_layout, map_spaces, prop};
 use crate::util::function;
 use crate::{api::util::GameHistoryResponse, error::DieselError};
 use anyhow::{Ok, Result};
-use awc::http::header::map;
 use diesel::dsl::exists;
 use diesel::{prelude::*, select};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 #[derive(Serialize, Clone)]
 pub struct MapSpacesResponseWithArifacts {
@@ -859,7 +858,7 @@ pub fn fetch_defender_types(
         })?
         .into_iter()
         .map(
-            |(map_spaces, map_layout, block_type, defender_type, prop)| DefenderTypeResponse {
+            |(map_spaces, _, block_type, defender_type, prop)| DefenderTypeResponse {
                 block_id: block_type.id,
                 id: map_spaces.id,
                 defender_id: defender_type.id,

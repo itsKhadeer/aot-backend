@@ -7,14 +7,14 @@ use super::defense::util::{
 use super::user::util::fetch_user;
 use super::{error, PgPool, RedisPool};
 use crate::api::attack::socket::{
-    BuildingDamageResponse, ResultType, SocketRequest, SocketResponse,
+    ResultType, SocketRequest, SocketResponse,
 };
 use crate::api::util::HistoryboardQuery;
 use crate::constants::{GAME_AGE_IN_MINUTES, MAX_BOMBS_PER_ATTACK};
 use crate::models::{AttackerType, User};
 use crate::validator::state::State;
 use crate::validator::util::{BombType, BuildingDetails, DefenderDetails, MineDetails, Path};
-use crate::validator::util::{Coords, SourceDestXY};
+use crate::validator::util::SourceDestXY;
 use actix_rt;
 use actix_web::error::ErrorBadRequest;
 use actix_web::web::{Data, Json};

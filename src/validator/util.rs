@@ -8,7 +8,6 @@ use crate::api::attack::socket::{
 use crate::api::attack::socket::{ResultType, SocketResponse};
 use crate::constants::COMPANION_PRIORITY;
 use crate::validator::state::State;
-use oauth2::url::OpaqueOrigin;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Eq, Hash, PartialEq, Serialize, Clone)]
@@ -255,7 +254,7 @@ pub fn send_terminate_game_message(frame_number: i32, message: String) -> Socket
 }
 
 pub fn select_side_hut_defender(
-    shadow_tiles: &Vec<(i32, i32)>,
+    shadow_tiles: &[(i32, i32)],
     roads: &HashSet<(i32, i32)>,
     hut_building: &BuildingDetails,
     hut_defender: &DefenderDetails,
@@ -347,7 +346,7 @@ pub fn get_roads_around_building(
         road_tiles.push(bottom);
     }
 
-    return road_tiles;
+    road_tiles
 }
 
 pub fn get_companion_priority(

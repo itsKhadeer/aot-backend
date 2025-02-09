@@ -5,7 +5,7 @@ use crate::validator::{
     self,
     util::{
         Attacker, BombType, BuildingDetails, BulletSpawnResponse, CompanionResult, Coords,
-        DefenderDetails, DefenderTarget, MineDetails,
+        DefenderDetails, MineDetails,
     },
 };
 
